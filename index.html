@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Insurance Predictor</title>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+
+    .container {
+      max-width: 420px;
+      margin: 40px auto;
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+
+    h2 {
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: gray;
+      font-size: 14px;
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+      font-weight: bold;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-top: 5px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      box-sizing: border-box;
+      font-size: 14px;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 20px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #5a67d8;
+    }
+
+    .result {
+      margin-top: 20px;
+    }
+
+    .card {
+      background: #f5f5f5;
+      padding: 12px;
+      margin-top: 10px;
+      border-radius: 10px;
+      text-align: center;
+      transition: 0.2s;
+    }
+
+    .card:hover {
+      transform: scale(1.03);
+    }
+
+    .best {
+      background: #d4edda;
+      border: 2px solid #28a745;
+      font-weight: bold;
+    }
+
+    canvas {
+      margin-top: 25px;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>Insurance Price Predictor</h2>
+<div class="subtitle">Compare companies & find best price</div>
+
+<form id="form">
+
+<label>Age</label>
+<input type="number" id="age" value="25">
+
+<label>Sex</label>
+<select id="sex">
+  <option value="0">Male</option>
+  <option value="1">Female</option>
+</select>
+
+<label>BMI</label>
+<input type="number" id="bmi" value="22">
+
+<label>Children</label>
+<input type="number" id="children" value="0">
+
+<label>Smoker</label>
+<select id="smoker">
+  <option value="0">Non Smoker</option>
+  <option value="1">Smoker</option>
+</select>
+
+<label>Region</label>
+<select id="region">
+  <option value="0">Southwest</option>
+  <option value="1">Southeast</option>
+  <option value="2">Northwest</option>
+  <option value="3">Northeast</option>
+</select>
+
+<button type="submit">Compare Prices</button>
+
+</form>
+
+<div id="result" class="result"></div>
+
+<canvas id="chart"></canvas>
+
+</div>
+
+<script>
+let chart;
+
+document.getElementById("form").onsubmit = async function(e) {
+  e.preventDefault();
+
+  let res = await fetch("/predict", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({
+      age: parseInt(document.getElementById("age").value),
+      sex: parseInt(document.getElementById("sex").value),
+      bmi: parseFloat(document.getElementById("bmi").value),
+      children: parseInt(document.getElementById("children").value),
+      smoker: parseInt(document.getElementById("smoker").value),
+      region: parseInt(document.getElementById("region").value)
+    })
+  });
+
+  let data = await res.json();
+
+  // ===== Show Cards =====
+  let min = Math.min(...Object.values(data));
+  let html = "";
+
+  for (let company in data) {
+    let cls = data[company] === min ? "card best" : "card";
+
+    html += `
+      <div class="${cls}">
+        <strong>${company}</strong><br>
+        ₹ ${data[company]}
+      </div>
+    `;
+  }
+
+  document.getElementById("result").innerHTML = html;
+
+  // ===== Chart =====
+  let labels = Object.keys(data);
+  let values = Object.values(data);
+
+  if (chart) chart.destroy();
+
+  let ctx = document.getElementById("chart").getContext("2d");
+
+  chart = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: labels,
+      datasets: [{
+        label: "Insurance Price",
+        data: values
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+};
+</script>
+
+</body>
+</html>
